@@ -5,6 +5,8 @@ let issLong = document.querySelector('#iss-long')
 let timeIssLocation = document.querySelector('#time')
 
 let update = 10000
+let maxFailedAttempts = 3
+
 let issMarker 
 // get iss picture and set size
 let issIcon = L.icon({
@@ -21,35 +23,47 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map)
 
 
-iss() // call function 1 time to start
+iss(maxFailedAttempts) // call function 1 time to start
 setInterval(iss, update) // 10 seconds
 
 // long and clear code:
-function iss() {
-    fetch(url).then( (res) => {
-        return res.json() // process response into JSON, the return promise will be sent to the next "then" block
-    }).then( (issData) => {
-        console.log(issData) // TODO - display data on web page
-        let lat = issData.latitude
-        let long = issData.longitude
-        issLat.innerHTML = lat
-        issLong.innerHTML = long
+function iss(attempts) {
 
-        //create marker if it doesn't exist
-        //move marker if it exists
+    if (attempts <= 0) {
+        alert('Failed to contact ISS server after several attempts.')
+        return
+    } 
 
-        if (!issMarker) {
-            //create marker
-            issMarker = L.marker([lat, long], {icon: issIcon}).addTo(map)
-        } else {
-            issMarker.setLatLng([lat, long])
+    if (!attempts <=0) { // I had to put another if statement, since my code still contacted API after 3 failed attempts.
+
+        fetch(url).then( (res) => {
+            return res.json() // process response into JSON, the return promise will be sent to the next "then" block
+        }).then( (issData) => {
+            console.log(issData) // TODO - display data on web page
+            let lat = issData.latitude
+            let long = issData.longitude
+            issLat.innerHTML = lat
+            issLong.innerHTML = long
+
+            //create marker if it doesn't exist
+            //move marker if it exists
+
+            if (!issMarker) {
+                //create marker
+                issMarker = L.marker([lat, long], {icon: issIcon}).addTo(map)
+            } else {
+                issMarker.setLatLng([lat, long])
+            }
+
+            let now = Date()
+            timeIssLocation.innerHTML = `This data was fetched at ${now}`
+        }).catch( (err) => {
+            attempts-- // attempts decrement of 1
+            console.log('ERROR!', err)
+        }).finally( () => {
+            setTimeout(iss, update, attempts)
+        })
         }
-
-        let now = Date()
-        timeIssLocation.innerHTML = `This data was fetched at ${now}`
-    }).catch( (err) => {
-        console.log('ERROR!', err)
-    })
 }
 
 
